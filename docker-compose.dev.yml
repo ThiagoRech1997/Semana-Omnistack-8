@@ -57,6 +57,7 @@ services:
       - REACT_APP_API_URL=http://localhost:3050
       - CHOKIDAR_USEPOLLING=true
       - NODE_OPTIONS=--openssl-legacy-provider
+      - ESLINT_CACHE_LOCATION=/tmp/.eslintcache
     ports:
       - "3000:3000"
     depends_on:
@@ -65,7 +66,6 @@ services:
       - tindev-dev-network
     volumes:
       - ./frontend:/app
-      - /app/node_modules
     command: npm start
 
 volumes:

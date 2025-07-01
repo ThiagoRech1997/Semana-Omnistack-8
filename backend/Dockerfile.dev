@@ -1,0 +1,30 @@
+# Dockerfile para desenvolvimento
+FROM node:18-alpine
+
+# Instalar dependências do sistema
+RUN apk add --no-cache git
+
+WORKDIR /app
+
+# Copiar arquivos de dependências
+COPY package*.json ./
+
+# Instalar todas as dependências (incluindo devDependencies)
+RUN npm ci
+
+# Copiar código da aplicação
+COPY . .
+
+# Criar usuário não-root
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+
+# Mudar propriedade dos arquivos
+RUN chown -R nodejs:nodejs /app
+USER nodejs
+
+# Expor porta
+EXPOSE 3050
+
+# Comando para desenvolvimento com hot reload
+CMD ["npm", "run", "dev"] 

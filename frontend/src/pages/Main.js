@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import io from 'socket.io-client';
 import api from '../services/api';
 
@@ -11,31 +11,47 @@ import like from '../assets/like.svg';
 import itsamatch from '../assets/itsamatch.png'
 
 export default function Main({ match }) {
+    const history = useHistory();
     const [users, setUsers] = useState([]);
     const [matchDev, setMatchDev] = useState(null);
+    const userId = match.params._id || localStorage.getItem('user');
+
     useEffect(() => {
+        if (!userId) {
+            history.push('/');
+            return;
+        }
         async function loadUsers(){
-            const response = await api.get('/devs', {
-                headers: {
-                    user: match.params._id,
+            try {
+                const response = await api.get('/devs', {
+                    headers: {
+                        user: userId,
+                    }
+                });
+                setUsers(response.data);
+            } catch (err) {
+                if (err.response && err.response.status === 404) {
+                    localStorage.removeItem('user');
+                    history.push('/');
                 }
-            });
-            setUsers(response.data);
+            }
         }
         loadUsers();
-    }, [match.params._id]);
+    }, [userId, history]);
     useEffect(() => {
-        const socket = io('http://192.168.0.100:3050', {
-            query: { user: match.params._id }
+        if (!userId) return;
+        const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:3050', {
+            query: { user: userId }
         });
         socket.on('match', dev => {
             setMatchDev(dev);
         });
-    }, [match.params._id]);
+        return () => socket.disconnect();
+    }, [userId]);
     async function handleDislike(_id){
         await api.post(`/devs/${_id}/dislikes`, null, {
             headers: {
-                user: match.params._id,
+                user: userId,
             }
         });
         setUsers(users.filter(user => user._id !== _id));
@@ -43,7 +59,7 @@ export default function Main({ match }) {
     async function handleLike(_id){
         await api.post(`/devs/${_id}/likes`, null, {
             headers: {
-                user: match.params._id,
+                user: userId,
             }
         });
         setUsers(users.filter(user => user._id !== _id));

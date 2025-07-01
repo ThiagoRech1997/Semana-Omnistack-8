@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # MongoDB para desenvolvimento
+  mongodb:
+    image: mongo:6.0
+    container_name: tindev-mongodb-dev
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: tindev_dev
+    volumes:
+      - mongodb_dev_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    ports:
+      - "27017:27017"
+    networks:
+      - tindev-dev-network
+
+  # Backend para desenvolvimento
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: tindev-backend-dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/tindev_dev?authSource=admin
+      - PORT=3050
+      - JWT_SECRET=dev-secret-key-change-in-production
+      - JWT_EXPIRES_IN=7d
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:3001
+      - RATE_LIMIT_WINDOW_MS=900000
+      - RATE_LIMIT_MAX_REQUESTS=1000
+    ports:
+      - "3050:3050"
+    depends_on:
+      - mongodb
+    networks:
+      - tindev-dev-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/.env:/app/.env
+    command: npm run dev
+
+  # Frontend para desenvolvimento
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: tindev-frontend-dev
+    restart: unless-stopped
+    environment:
+      - REACT_APP_API_URL=http://localhost:3050
+      - CHOKIDAR_USEPOLLING=true
+      - NODE_OPTIONS=--openssl-legacy-provider
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - tindev-dev-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm start
+
+volumes:
+  mongodb_dev_data:
+    driver: local
+
+networks:
+  tindev-dev-network:
+    driver: bridge 

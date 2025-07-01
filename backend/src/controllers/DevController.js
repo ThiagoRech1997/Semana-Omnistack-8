@@ -26,6 +26,10 @@ module.exports = {
       const { user } = req.headers;
       const loggedDev = await Dev.findById(user);
 
+      if (!loggedDev) {
+        return res.status(404).json({ error: 'Usuário não encontrado' });
+      }
+
       const users = await Dev.find({
           $and: [
               { _id: { $ne: user } },

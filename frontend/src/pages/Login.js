@@ -10,6 +10,7 @@ export default function Login({ history }) {
         e.preventDefault();
         const response = await api.post('/devs',{username});
         const { _id } = response.data;
+        localStorage.setItem('user', _id);
         history.push(`/dev/${_id}`);
     };
     return(

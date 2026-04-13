@@ -1,7 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import io from 'socket.io-client';
-import AsyncStorage from '@react-native-community/async-storage';
-import { View, Text, SafeAreaView, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {io} from 'socket.io-client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 
 import api from '../services/api';
 
@@ -10,18 +17,16 @@ import like from '../assets/like.png';
 import dislike from '../assets/dislike.png';
 import itsamatch from '../assets/itsamatch.png';
 
-export default function Main({ navigation }) {
-  const id = navigation.getParam('user');
+export default function Main({navigation, route}) {
+  const id = route.params?.user;
   const [users, setUsers] = useState([]);
   const [matchDev, setMatchDev] = useState(null);
 
   useEffect(() => {
     async function loadUsers() {
       const response = await api.get('/devs', {
-        headers: {
-          user: id,
-        }
-      })
+        headers: {user: id},
+      });
 
       setUsers(response.data);
     }
@@ -31,12 +36,17 @@ export default function Main({ navigation }) {
 
   useEffect(() => {
     const socket = io('http://localhost:3333', {
-      query: { user: id }
+      query: {user: id},
+      transports: ['websocket'],
     });
 
     socket.on('match', dev => {
       setMatchDev(dev);
-    })
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, [id]);
 
   async function handleLike() {
@@ -62,7 +72,7 @@ export default function Main({ navigation }) {
   async function handleLogout() {
     await AsyncStorage.clear();
 
-    navigation.navigate('Login');
+    navigation.replace('Login');
   }
 
   return (
